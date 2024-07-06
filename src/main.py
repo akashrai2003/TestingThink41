@@ -12,40 +12,26 @@ if not api_key:
 
 client = Groq(api_key=api_key)
 
+#Pydantic data validation
 class Query(BaseModel):
     text: str
 
 MAX_INPUT_LENGTH = 1000  
 
-@app.post("/chat")
-async def chat(query: Query):
+
+
+def get_groq_response(text: str) -> str: 
+    
     '''
-    Chat endpoint that takes a text input and returns a response from the Groq API
-    input: query (Query) - text input
-    output: response (str) - response from Groq API
+        Format the messages to match the expected format for the Groq API.
 
+        Args:
+            messages (List[Dict[str, str]]): List of messages with 'role' and 'content' keys.
+
+        Returns:
+            List[Dict[str, str]]: Formatted messages.
     '''
-    # Check for empty input
-    if not query.text.strip():
-        raise HTTPException(status_code=400, detail="Input text cannot be empty")
-
-    # Check for input length
-    if len(query.text) > MAX_INPUT_LENGTH:
-        raise HTTPException(status_code=400, detail=f"Input text exceeds maximum length of {MAX_INPUT_LENGTH} characters")
-
-    try:
-        response = get_groq_response(query.text)
-        if response is None:
-            raise HTTPException(status_code=500, detail="Error getting response from Groq API")
-        return {"response": response}
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid input data: {e.errors()}")
-    except HTTPException as e:
-        raise e  
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-def get_groq_response(text: str) -> str:
+    
     messages = [
         {
             "role": "system",
@@ -82,6 +68,36 @@ def get_groq_response(text: str) -> str:
         raise HTTPException(status_code=500, detail=str(e))
 
     return response_content
+
+
+@app.post("/chat")
+async def chat(query: Query):
+    '''
+    Chat endpoint that takes a text input and returns a response from the Groq API
+    input: query (Query) - text input
+    output: response (str) - response from Groq API
+
+    '''
+    # Check for empty input
+    if not query.text.strip():
+        raise HTTPException(status_code=400, detail="Input text cannot be empty")
+
+    # Check for input length
+    if len(query.text) > MAX_INPUT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Input text exceeds maximum length of {MAX_INPUT_LENGTH} characters")
+
+    try:
+        response = get_groq_response(query.text)
+        if response is None:
+            raise HTTPException(status_code=500, detail="Error getting response from Groq API")
+        return {"response": response}
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid input data: {e.errors()}")
+    except HTTPException as e:
+        raise e  
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn
